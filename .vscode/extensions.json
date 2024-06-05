@@ -1,0 +1,15 @@
+{
+    "recommendations": [
+        "ms-python.isort",
+        "ms-python.black-formatter",
+        "ms-python.flake8",
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "mosapride.zenkaku",
+        "christian-kohler.path-intellisense",
+        "ms-ceintl.vscode-language-pack-ja",
+        "oderwat.indent-rainbow",
+        "shinotatwu-ds.file-tree-generator",
+        "github.vscode-pull-request-github"
+    ]
+}
