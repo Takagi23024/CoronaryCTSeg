@@ -174,44 +174,30 @@ renderer.AddActor2D(text_actor)
 
 
 # レイの情報を格納するリスト
-ray_info_list = []
+lay_info = None
+ray_actor = None  # 追加: レイアクターを格納する変数
 intersection_point = None
 mesh_mapper = None
 
 
 def on_right_button_down(obj, event):
-    global intersection_point, mesh_mapper
+    global lay_info, ray_actor, intersection_point, mesh_mapper
 
-    if len(ray_info_list) < 2:
-
+    # 一本目のレイを定義する
+    if ray_actor is None:
         click_pos = render_window_interactor.GetEventPosition()
-        print(f"クリック位置の2Dスクリーン座標: {click_pos}")
-
-        # カメラの位置と方向を取得
         camera = renderer.GetActiveCamera()
         cam_pos = np.array(camera.GetPosition())
-        focal_point = np.array(camera.GetFocalPoint())
-        view_up = np.array(camera.GetViewUp())
-
-        print(f"カメラ位置: {cam_pos}")
-        print(f"カメラの焦点位置: {focal_point}")
-        print(f"カメラの上方向ベクトル: {view_up}")
-
-        # クリック位置の2Dスクリーン座標を3Dワールド座標に変換
         picker = vtk.vtkWorldPointPicker()
         picker.Pick(click_pos[0], click_pos[1], 0, renderer)
         click_pos_3d = np.array(picker.GetPickPosition())
-        print(f"クリック位置の3Dワールド座標: {click_pos_3d}")
 
-        # レイの方向を計算
         ray_dir = click_pos_3d - cam_pos
         ray_dir = ray_dir / np.linalg.norm(ray_dir)  # 正規化
 
-        # レイの長さを指定
         ray_length = 1000.0
         ray_end = cam_pos + ray_dir * ray_length
 
-        # レイキャスティングで交差点を取得
         ray = vtk.vtkLineSource()
         ray.SetPoint1(cam_pos)
         ray.SetPoint2(ray_end)
@@ -222,47 +208,30 @@ def on_right_button_down(obj, event):
 
         ray_actor = vtk.vtkActor()
         ray_actor.SetMapper(ray_mapper)
-
-        # レイの色を赤と青で交互に設定
-        ray_color = [1, 0, 0] if len(ray_info_list) % 2 == 0 else [0, 0, 1]
-        ray_actor.GetProperty().SetColor(ray_color)
+        ray_actor.GetProperty().SetColor(1, 0, 0)  # 赤色
 
         renderer.AddActor(ray_actor)
         render_window.Render()
 
-        # レイの情報をリストに追加
-        ray_info_list.append(
-            {"click_pos_3d": click_pos_3d.tolist(), "ray_dir": ray_dir.tolist(), "ray_color": ray_color}
-        )
+        lay_info = (click_pos_3d, ray_dir)
 
-        print("----------------------------------------------------------------")
-        print(f"レイの情報: {ray_info_list[-1]}")
-        print("----------------------------------------------------------------")
-
-    # 2本のレイが描画されたら交点を計算
+    # 2回目のクリックで交点を求めてベクトルを描画し、赤いレイを消去
     else:
-        p1, d1 = np.array(ray_info_list[0]["click_pos_3d"]), np.array(ray_info_list[0]["ray_dir"])
-        p2, d2 = np.array(ray_info_list[1]["click_pos_3d"]), np.array(ray_info_list[1]["ray_dir"])
+        click_pos = render_window_interactor.GetEventPosition()
+        camera = renderer.GetActiveCamera()
+        cam_pos = np.array(camera.GetPosition())
+        picker = vtk.vtkWorldPointPicker()
+        picker.Pick(click_pos[0], click_pos[1], 0, renderer)
+        click_pos_3d = np.array(picker.GetPickPosition())
+        ray_dir = click_pos_3d - cam_pos
+        ray_dir = ray_dir / np.linalg.norm(ray_dir)  # 正規化
 
-        # 交点または最も近い点を計算
+        p1, d1 = lay_info
+        p2, d2 = click_pos_3d, ray_dir
         intersection_point = closest_midpoint_between_lines(p1, d1, p2, d2)
 
-        print(f"2直線の交点: {intersection_point}")
-
-        # 交点を描画
-        sphere = vtk.vtkSphereSource()
-        sphere.SetCenter(intersection_point)
-        sphere.SetRadius(1.0)
-        sphere.Update()
-
-        sphere_mapper = vtk.vtkPolyDataMapper()
-        sphere_mapper.SetInputData(sphere.GetOutput())
-
-        sphere_actor = vtk.vtkActor()
-        sphere_actor.SetMapper(sphere_mapper)
-        sphere_actor.GetProperty().SetColor(0, 1, 0)  # 緑色
-
-        renderer.AddActor(sphere_actor)
+        # 赤いレイを削除
+        renderer.RemoveActor(ray_actor)
         render_window.Render()
 
         # 中点を中心に半径5の球範囲内のボリュームの座標と数値を取得
@@ -271,21 +240,14 @@ def on_right_button_down(obj, event):
         sphere.SetCenter(intersection_point)
         sphere.SetRadius(radius)
 
-        # 中点を中心とした半径5の球のサンプラ
         extract_sphere = vtk.vtkExtractGeometry()
         extract_sphere.SetInputData(vtk_image_data)
         extract_sphere.SetImplicitFunction(sphere)
         extract_sphere.Update()
 
-        # 抽出された範囲のボリュームデータを取得
         extracted_data = extract_sphere.GetOutput()
-
-        # 抽出されたデータのポイント座標と数値を取得
         points = extracted_data.GetPoints()
         point_data = extracted_data.GetPointData().GetScalars()
-
-        print(points)
-        print(point_data)
 
         if points and point_data:
             coordinates = []
@@ -296,18 +258,9 @@ def on_right_button_down(obj, event):
                 coordinates.append(coordinate)
                 values.append(value)
 
-            # NumPy配列に変換
             coordinates_np = np.array(coordinates)
             values_np = np.array(values)
 
-            print(coordinates_np.shape)
-            # print(coordinates_np[:1].min())
-            # print(coordinates_np[:1].min())
-            # print(coordinates_np[:2].max())
-            # print(coordinates_np[:2].max())
-            print(values_np.shape)
-
-            # 中点の輝度値を基準に幅±10でフィルタリング
             center_value = ArrayDicom[
                 int((intersection_point[0] - reader.GetDataExtent()[0]) / ConstPixelSpacing[0]),
                 int((intersection_point[1] - reader.GetDataExtent()[2]) / ConstPixelSpacing[1]),
@@ -317,40 +270,60 @@ def on_right_button_down(obj, event):
             mask = (values_np >= center_value - 10) & (values_np <= center_value + 10)
             filtered_coordinates = coordinates_np[mask]
 
-            print(f"filtered_coordinates: {len(filtered_coordinates)}")
-
-            # 主成分分析を実行
             from sklearn.decomposition import PCA
 
             pca = PCA(n_components=1)
             pca.fit(filtered_coordinates)
 
-            # 第一主成分を取得
             principal_direction = pca.components_[0]
             center_of_mass = np.mean(filtered_coordinates, axis=0)
 
-            # 第一主成分を直線として描画
-            line_start = center_of_mass - principal_direction * 100  # スケールを調整
-            line_end = center_of_mass + principal_direction * 100
+            diameter = 2 * radius
 
-            line_source = vtk.vtkLineSource()
-            line_source.SetPoint1(line_start)
-            line_source.SetPoint2(line_end)
-            line_source.Update()
+            line_start = center_of_mass - principal_direction * (diameter / 2)
+            line_end = center_of_mass + principal_direction * (diameter / 2)
 
-            line_mapper = vtk.vtkPolyDataMapper()
-            line_mapper.SetInputData(line_source.GetOutput())
+            arrow_source = vtk.vtkArrowSource()
+            arrow_source.SetTipLength(0.3)  # 矢印の先端の長さを調整
+            arrow_source.SetTipRadius(0.2)  # 矢印の先端の太さを調整
+            arrow_source.SetShaftRadius(0.1)  # 矢印のシャフトの太さを調整
 
-            line_actor = vtk.vtkActor()
-            line_actor.SetMapper(line_mapper)
-            line_actor.GetProperty().SetColor(1, 1, 0)  # 黄色
+            direction = line_end - line_start
+            direction = direction / np.linalg.norm(direction)
 
-            renderer.AddActor(line_actor)
+            transform = vtk.vtkTransform()
+            transform.Translate(line_start)
+
+            v1 = np.array([1, 0, 0])
+            v2 = direction
+
+            axis = np.cross(v1, v2)
+            angle = np.arccos(np.dot(v1, v2))
+
+            if np.linalg.norm(axis) < 1e-6:
+                axis = np.array([0, 0, 1])
+                if np.dot(v1, v2) < 0:
+                    angle = np.pi
+
+            axis = axis / np.linalg.norm(axis)
+            transform.RotateWXYZ(np.degrees(angle), axis[0], axis[1], axis[2])
+            transform.Scale(np.linalg.norm(line_end - line_start), 1, 1)
+
+            transform_filter = vtk.vtkTransformPolyDataFilter()
+            transform_filter.SetTransform(transform)
+            transform_filter.SetInputConnection(arrow_source.GetOutputPort())
+            transform_filter.Update()
+
+            arrow_mapper = vtk.vtkPolyDataMapper()
+            arrow_mapper.SetInputData(transform_filter.GetOutput())
+
+            arrow_actor = vtk.vtkActor()
+            arrow_actor.SetMapper(arrow_mapper)
+            arrow_actor.GetProperty().SetColor(1, 1, 0)  # 黄色
+
+            renderer.AddActor(arrow_actor)
+            ray_actor = None
             render_window.Render()
-
-            print(f"第一主成分の方向: {principal_direction}")
-            print(f"中心点: {center_of_mass}")
-            print(f"直線の始点: {line_start}, 直線の終点: {line_end}")
 
 
 # 左クリックはカメラ操作のために既定のイベントハンドラを設定
