@@ -273,7 +273,7 @@ def on_right_button_down(obj, event):
             # 主成分分析を実行
             from sklearn.decomposition import PCA
 
-            pca = PCA(n_components=3)  # 第二主成分も取得するために n_components=2 に設定
+            pca = PCA(n_components=3)  # 第三主成分も取得するために n_components=3 に設定
             pca.fit(filtered_coordinates)
 
             center_of_mass = np.mean(filtered_coordinates, axis=0)
@@ -305,15 +305,15 @@ def on_right_button_down(obj, event):
             v2 = direction_1
 
             axis = np.cross(v1, v2)
-            angle = np.arccos(np.dot(v1, v2))
+            angle_1 = np.arccos(np.dot(v1, v2))
 
             if np.linalg.norm(axis) < 1e-6:
                 axis = np.array([0, 0, 1])
                 if np.dot(v1, v2) < 0:
-                    angle = np.pi
+                    angle_1 = np.pi
 
             axis = axis / np.linalg.norm(axis)
-            transform_1.RotateWXYZ(np.degrees(angle), axis[0], axis[1], axis[2])
+            transform_1.RotateWXYZ(np.degrees(angle_1), axis[0], axis[1], axis[2])
             transform_1.Scale(np.linalg.norm(line_end_1 - line_start_1), 1, 1)
 
             transform_filter_1 = vtk.vtkTransformPolyDataFilter()
@@ -350,15 +350,15 @@ def on_right_button_down(obj, event):
             v2 = direction_2
 
             axis = np.cross(v1, v2)
-            angle = np.arccos(np.dot(v1, v2))
+            angle_2 = np.arccos(np.dot(v1, v2))
 
             if np.linalg.norm(axis) < 1e-6:
                 axis = np.array([0, 0, 1])
                 if np.dot(v1, v2) < 0:
-                    angle = np.pi
+                    angle_2 = np.pi
 
             axis = axis / np.linalg.norm(axis)
-            transform_2.RotateWXYZ(np.degrees(angle), axis[0], axis[1], axis[2])
+            transform_2.RotateWXYZ(np.degrees(angle_2), axis[0], axis[1], axis[2])
             transform_2.Scale(np.linalg.norm(line_end_2 - line_start_2), 1, 1)
 
             transform_filter_2 = vtk.vtkTransformPolyDataFilter()
@@ -379,7 +379,7 @@ def on_right_button_down(obj, event):
             line_start_3 = center_of_mass - principal_direction_3 * (diameter / 4)
             line_end_3 = center_of_mass + principal_direction_3 * (diameter / 4)
 
-            # 矢印ベクトルとして第二主成分を描画
+            # 矢印ベクトルとして第三主成分を描画
             arrow_source_3 = vtk.vtkArrowSource()
             arrow_source_3.SetTipLength(0.3)  # 矢印の先端の長さを調整
             arrow_source_3.SetTipRadius(0.2)  # 矢印の先端の太さを調整
@@ -395,15 +395,15 @@ def on_right_button_down(obj, event):
             v2 = direction_3
 
             axis = np.cross(v1, v2)
-            angle = np.arccos(np.dot(v1, v2))
+            angle_3 = np.arccos(np.dot(v1, v2))
 
             if np.linalg.norm(axis) < 1e-6:
                 axis = np.array([0, 0, 1])
                 if np.dot(v1, v2) < 0:
-                    angle = np.pi
+                    angle_3 = np.pi
 
             axis = axis / np.linalg.norm(axis)
-            transform_3.RotateWXYZ(np.degrees(angle), axis[0], axis[1], axis[2])
+            transform_3.RotateWXYZ(np.degrees(angle_3), axis[0], axis[1], axis[2])
             transform_3.Scale(np.linalg.norm(line_end_3 - line_start_3), 1, 1)
 
             transform_filter_3 = vtk.vtkTransformPolyDataFilter()
@@ -416,9 +416,36 @@ def on_right_button_down(obj, event):
 
             arrow_actor_3 = vtk.vtkActor()
             arrow_actor_3.SetMapper(arrow_mapper_3)
-            arrow_actor_3.GetProperty().SetColor(0, 1, 1)  #
+            arrow_actor_3.GetProperty().SetColor(0, 0, 1)  # 青色
 
             renderer.AddActor(arrow_actor_3)
+
+            # 各主成分の角度を表示
+            angle_1_degrees = np.degrees(angle_1)
+            angle_2_degrees = np.degrees(angle_2)
+            angle_3_degrees = np.degrees(angle_3)
+
+            text_actor_1 = vtk.vtkTextActor()
+            text_actor_1.SetInput(f"Ve: {angle_1_degrees:.2f}°")
+            text_actor_1.GetTextProperty().SetFontSize(24)
+            text_actor_1.GetTextProperty().SetColor(1, 1, 0)  # 黄色
+            text_actor_1.SetPosition(10, 70)  # ウィンドウの右下に位置を設定
+
+            text_actor_2 = vtk.vtkTextActor()
+            text_actor_2.SetInput(f"PPV: {angle_2_degrees:.2f}°")
+            text_actor_2.GetTextProperty().SetFontSize(24)
+            text_actor_2.GetTextProperty().SetColor(0, 1, 0)  # 緑色
+            text_actor_2.SetPosition(10, 40)  # ウィンドウの右下に位置を設定
+
+            text_actor_3 = vtk.vtkTextActor()
+            text_actor_3.SetInput(f"OPV: {angle_3_degrees:.2f}°")
+            text_actor_3.GetTextProperty().SetFontSize(24)
+            text_actor_3.GetTextProperty().SetColor(0, 0, 1)  # 青色
+            text_actor_3.SetPosition(10, 10)  # ウィンドウの右下に位置を設定
+
+            renderer.AddActor2D(text_actor_1)
+            renderer.AddActor2D(text_actor_2)
+            renderer.AddActor2D(text_actor_3)
             render_window.Render()
 
 
