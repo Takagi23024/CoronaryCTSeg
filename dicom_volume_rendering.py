@@ -44,6 +44,7 @@ def load_dicom_data(dicom_dir):
         ArrayDicom = ArrayDicom.reshape(ConstPixelDims[:2], order="F")
     else:
         ArrayDicom = ArrayDicom.reshape(ConstPixelDims, order="F")
+        ArrayDicom = ArrayDicom[:, :, ::-1]
 
     ArrayDicom = ArrayDicom * rescale_slope + rescale_intercept
 

@@ -550,7 +550,7 @@ reset_button = vtk.vtkTextActor()
 reset_button.SetInput("Reset Camera")
 reset_button.GetTextProperty().SetFontSize(24)
 reset_button.GetTextProperty().SetColor(1.0, 0.0, 0.0)  # 赤色
-reset_button.SetPosition(render_window.GetSize()[0] - 160, 40)  # 右下に位置を設定
+reset_button.SetPosition(render_window.GetSize()[0] - 170, 40)  # 右下に位置を設定
 renderer.AddActor2D(reset_button)
 
 
