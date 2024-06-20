@@ -1,5 +1,3 @@
-import os
-
 import numpy as np
 import pydicom
 import vtk
@@ -7,14 +5,31 @@ from vtk.util import numpy_support
 
 
 def read_angio_dicom(angio_dicom_dir):
-    first_file = [f for f in os.listdir(angio_dicom_dir) if f.endswith(".dcm")][0]
-    dicom_path = os.path.join(angio_dicom_dir, first_file)
-    dicom_data = pydicom.dcmread(dicom_path)
 
-    # アーム角度の取得
-    rao_lao_angle = float(dicom_data[(0x0018, 0x1510)].value)
-    cra_cau_angle = float(dicom_data[(0x0018, 0x1511)].value)
-    return rao_lao_angle, cra_cau_angle
+    import glob
+    import os
+
+    files = glob.glob(os.path.join(angio_dicom_dir, "*.dcm"))
+    datasets = [pydicom.dcmread(f) for f in files]
+
+    angio_dicom_infos = []
+    for i in range(len(datasets)):
+        dicom_data = datasets[i]
+
+        ArrayDicom = dicom_data.pixel_array  # (Frame_num, Height, Width)
+        ArrayDicom = np.transpose(ArrayDicom, (2, 1, 0))  # (Width, Height, Frame_num)
+        ArrayDicom = ArrayDicom[:, ::-1, :]
+
+        # カメラと患者の距離
+        distance_source_to_patient = float(dicom_data[(0x0018, 0x1111)].value)
+
+        # アーム角度の取得
+        rao_lao_angle = float(dicom_data[(0x0018, 0x1510)].value)
+        cra_cau_angle = float(dicom_data[(0x0018, 0x1511)].value)
+
+        angio_dicom_infos.append((ArrayDicom, distance_source_to_patient, rao_lao_angle, cra_cau_angle))
+
+    return angio_dicom_infos
 
 
 def read_ct_dicom(ct_dicom_dir):

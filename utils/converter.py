@@ -6,7 +6,7 @@ import vtk
 from vtk.util import numpy_support
 
 
-def numpy_to_vtk_image_data(numpy_array, spacing):
+def ct_numpy_to_vtk_image(numpy_array, spacing):
     """
     NumPy配列をvtkImageDataに変換する関数
 
@@ -26,4 +26,13 @@ def numpy_to_vtk_image_data(numpy_array, spacing):
 
     vtk_image_data.GetPointData().SetScalars(vtk_array)
 
+    return vtk_image_data
+
+
+def angio_numpy_to_vtk_image(numpy_array):
+    vtk_image_data = vtk.vtkImageData()
+    vtk_image_data.SetDimensions(numpy_array.shape)
+    flat_numpy_array = numpy_array.flatten(order="F")
+    vtk_array = numpy_support.numpy_to_vtk(num_array=flat_numpy_array, deep=True, array_type=vtk.VTK_FLOAT)
+    vtk_image_data.GetPointData().SetScalars(vtk_array)
     return vtk_image_data
