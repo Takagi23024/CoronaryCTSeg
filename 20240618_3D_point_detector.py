@@ -44,7 +44,7 @@ def load_dicom_and_extract_points(dicom_dir):
         array_dicom = array_dicom.reshape(pixel_dims, order="F")
 
     array_dicom = array_dicom * rescale_slope + rescale_intercept
-    array_dicom = array_dicom[:, :, ::-1]
+    # array_dicom = array_dicom[:, :, ::-1]
 
     origin = reader.GetImagePositionPatient()
     x = np.arange(pixel_dims[0]) * pixel_spacing[0] + origin[0]
@@ -155,7 +155,7 @@ renderer.ResetCamera()
 camera = renderer.GetActiveCamera()
 camera.SetFocalPoint(volume.GetCenter())
 camera.SetPosition(volume.GetCenter()[0], volume.GetCenter()[1] + 500, volume.GetCenter()[2])
-camera.SetViewUp(0, 0, 1)
+camera.SetViewUp(0, 0, -1)
 renderer.ResetCameraClippingRange()
 
 
